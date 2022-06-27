@@ -5,9 +5,12 @@ import com.api.parkingcontrol.exception.ConflictException;
 import com.api.parkingcontrol.exception.ResourceNotFoundException;
 import com.api.parkingcontrol.models.ParkingSpotModel;
 import com.api.parkingcontrol.repositories.ParkingSpotRepository;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
@@ -61,10 +64,28 @@ public class ParkingSpotService {
 
     public ParkingSpotModel findById(UUID id) {
          Optional<ParkingSpotModel> obj = repository.findById(id);
-                return obj.orElseThrow(() -> new ResourceNotFoundException(id));
+         if(obj.isEmpty()) {
+             throw new ResourceNotFoundException(id);
+         }
+         return obj.get();
+
     }
     @Transactional
-    public void delete(ParkingSpotModel parkingSpotModel) {
-         repository.delete(parkingSpotModel);
+    public void delete(UUID id) {
+        ParkingSpotModel parkingSpotModel = findById(id);
+        repository.delete(parkingSpotModel);
     }
+
+    public ParkingSpotModel update(UUID id, ParkingSpotDTO parkingSpotDto) {
+
+        ParkingSpotModel parkingSpot = findById(id);
+        validadeParkingSpot(parkingSpotDto);
+
+        var parkingSpotModel = new ParkingSpotModel();
+        BeanUtils.copyProperties(parkingSpotDto, parkingSpotModel);
+        parkingSpotModel.setId(parkingSpot.getId());
+        parkingSpotModel.setRegistrationDate(parkingSpot.getRegistrationDate());
+        return save(parkingSpotModel);
+    }
+
 }
